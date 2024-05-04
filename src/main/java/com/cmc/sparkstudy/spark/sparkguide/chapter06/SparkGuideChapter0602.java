@@ -15,18 +15,14 @@ import java.util.Arrays;
  * @author TomBrother
  * @version 1.0.0
  * @ClassName MyClass.java
- * @Description 处理不同数据类型（转为spark类型， 处理bool类型，数值类型，字符串类型， 正则表达式）
+ * @Description 处理不同数据类型（日期类型看， 处理数据空值）
  * @createTime 2024年05月03日
  */
-public class SparkGuideChapter0601 {
-    public static final String HOME_PATH = System.getProperty("user.dir") + System.getProperty("file.separator")
-            + "target" + System.getProperty("file.separator")
-            + "classes" + System.getProperty("file.separator");
-
+public class SparkGuideChapter0602 {
     public static void main(String[] args) {
         SparkSessionWrapper sparkSessionWrapper = SparkSessionWrapper.build();
         try {
-            new SparkGuideChapter0601().execute(sparkSessionWrapper);
+            new SparkGuideChapter0602().execute(sparkSessionWrapper);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -46,26 +42,23 @@ public class SparkGuideChapter0601 {
         Row row2 = RowFactory.create("american", "china2", 32);
         Row row3 = RowFactory.create("american", "singopore", 33);
         Row row4 = RowFactory.create("american", "hongKong", 34);
-        Dataset<Row> dataset = sparkSessionWrapper.getSparkSession().createDataFrame(Arrays.asList(row1, row2, row3, row4), schema);
+        Row row5 = RowFactory.create("american", null, 35);
+        Dataset<Row> dataset = sparkSessionWrapper.getSparkSession().createDataFrame(Arrays.asList(row1, row2, row3, row4, row5), schema);
 
-        // 1 lit() 转为spark类型
-        dataset.select(functions.lit(5), functions.lit("five"), functions.lit(5.12)).show();
-
-        // 2 筛选
-        dataset.where(functions.col("count").equalTo(31))
-                .select("DEST_COUNTRY", "ORIGIN_COUNTRY", "count")
+        // 1 处理日期类型
+        dataset.withColumn("today", functions.current_date())
+                .withColumn("now", functions.current_timestamp())
                 .show();
+        // 2 coalesce 选择第一个非空值
+        dataset.select(functions.coalesce(functions.col("DEST_COUNTRY"), functions.col("ORIGIN_COUNTRY"))).show();
 
-        // 3 多条件筛选
-        dataset.where(functions.col("count").equalTo(31).or(functions.col("count").equalTo(32)))
-                .select("DEST_COUNTRY", "ORIGIN_COUNTRY", "count")
-                .show();
-        // 4 处理数值类型
-        // 5 处理字符串类型 转大写
-        dataset.select(functions.initcap(functions.col("ORIGIN_COUNTRY"))).show();
-        // 5.2 正则表达式 regexp_extract()取值
-        dataset.select(functions.regexp_extract(functions.col("ORIGIN_COUNTRY"), "china\\S+", 0)).show();
-        // 5.3 正则表达式 regexp_replace()取值
-        dataset.select(functions.regexp_replace(functions.col("ORIGIN_COUNTRY"), "china\\S+", "chinaX")).show();
+        // 3 ifnull , nulif, nvl nvl2
+        // 4 drop
+        dataset.na().drop("any").show();
+
+        // 5 fill 可以用一组值填充一列或多列，可以指定一个映射完成该操作
+        dataset.na().fill("NullValue").show();
+
+        // 6 replace： 替换
     }
 }
